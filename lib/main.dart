@@ -35,7 +35,7 @@ class _HomeState extends State<Home> {
 
   void _addToDo() {
     setState(() {
-      if(_toDoController.text != null && _toDoController.text != ""){
+      if (_toDoController.text != null && _toDoController.text != "") {
         Map<String, dynamic> newToDo = Map();
 
         newToDo["title"] = _toDoController.text;
@@ -47,6 +47,25 @@ class _HomeState extends State<Home> {
         _saveData();
       }
     });
+  }
+
+  Future<Null> _refresh() async {
+    await Future.delayed(Duration(seconds: 1));
+
+    setState(() {
+      _toDoList.sort((a, b) {
+        if (a["ok"] && !b["ok"])
+          return 1;
+        else if (!a["ok"] && b["ok"])
+          return 1;
+        else
+          return 0;
+      });
+
+      _saveData();
+    });
+
+    return null;
   }
 
   @override
@@ -81,11 +100,13 @@ class _HomeState extends State<Home> {
             ),
           ),
           Expanded(
+              child: RefreshIndicator(
+            onRefresh: _refresh,
             child: ListView.builder(
                 padding: EdgeInsets.only(top: 10.0),
                 itemCount: _toDoList.length,
                 itemBuilder: buildItem),
-          )
+          ))
         ],
       ),
     );
@@ -95,19 +116,22 @@ class _HomeState extends State<Home> {
     return Dismissible(
       key: Key(DateTime.now().millisecondsSinceEpoch.toString()),
       background: Container(
-        color: Colors.red,
-        child: Align(
-          alignment: Alignment(-0.9, 0.0),
-          child: Icon(Icons.delete, color: Colors.white,),
-        )
+          color: Colors.red,
+          child: Align(
+            alignment: Alignment(-0.9, 0.0),
+            child: Icon(
+              Icons.delete,
+              color: Colors.white,
+            ),
+          )
+
       ),
       direction: DismissDirection.startToEnd,
       child: CheckboxListTile(
         title: Text(_toDoList[index]["title"]),
         value: _toDoList[index]["ok"],
         secondary: CircleAvatar(
-          child: Icon(
-              _toDoList[index]["ok"] ? Icons.check : Icons.error),
+          child: Icon(_toDoList[index]["ok"] ? Icons.check : Icons.error),
         ),
         onChanged: (check) {
           setState(() {
@@ -116,7 +140,7 @@ class _HomeState extends State<Home> {
           });
         },
       ),
-      onDismissed: (direction){
+      onDismissed: (direction) {
         setState(() {
           _lastRemoved = Map.from(_toDoList[index]);
           _lasRemovedPos = index;
@@ -129,7 +153,7 @@ class _HomeState extends State<Home> {
           content: Text("Tarefa \"${_lastRemoved["title"]}\" removida"),
           action: SnackBarAction(
             label: "Desfazer",
-            onPressed: (){
+            onPressed: () {
               setState(() {
                 _toDoList.insert(_lasRemovedPos, _lastRemoved);
 
@@ -140,6 +164,7 @@ class _HomeState extends State<Home> {
           duration: Duration(seconds: 5),
         );
 
+        Scaffold.of(context).removeCurrentSnackBar();
         Scaffold.of(context).showSnackBar(snack);
       },
     );
